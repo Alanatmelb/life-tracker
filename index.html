@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Life Tracker</title>
+
+  <meta name="description" content="极简打卡 PWA — 帮你坚持计划" />
+  <meta name="theme-color" content="#0a84ff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Tracker" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1 id="view-title">今日</h1>
+  </header>
+
+  <main id="app">
+    <!-- Day View -->
+    <section id="view-day" class="view" aria-label="今日打卡">
+      <div class="date-bar">
+        <button class="icon-btn" id="prev-day" aria-label="前一天">‹</button>
+        <input type="date" id="date-picker" />
+        <button class="icon-btn" id="next-day" aria-label="后一天">›</button>
+        <button class="link-btn" id="today-btn">今天</button>
+      </div>
+      <ul id="day-list" class="task-list" aria-live="polite"></ul>
+      <p id="day-empty" class="empty hidden">这一天没有计划。去 Plans 添加一个吧。</p>
+    </section>
+
+    <!-- Plans View -->
+    <section id="view-plans" class="view hidden" aria-label="计划管理">
+      <div class="toolbar">
+        <button class="primary-btn" id="add-task-btn">+ 新建计划</button>
+        <div class="toolbar-spacer"></div>
+        <button class="link-btn" id="export-btn">导出</button>
+        <button class="link-btn" id="import-btn">导入</button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden />
+      </div>
+      <h2 class="section-title">进行中</h2>
+      <ul id="plans-list" class="task-list"></ul>
+      <p id="plans-empty" class="empty hidden">还没有计划，点击上方"新建计划"添加。</p>
+
+      <h2 class="section-title" id="archived-title">已归档</h2>
+      <ul id="archived-list" class="task-list muted"></ul>
+    </section>
+
+    <!-- Reports View -->
+    <section id="view-reports" class="view hidden" aria-label="统计报告">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-7">--</div>
+          <div class="stat-label">7 天完成率</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-30">--</div>
+          <div class="stat-label">30 天完成率</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-all">--</div>
+          <div class="stat-label">全部完成率</div>
+        </div>
+      </div>
+
+      <h2 class="section-title">各计划完成率（30 天）</h2>
+      <ul id="report-task-list" class="report-list"></ul>
+      <p id="report-empty" class="empty hidden">没有数据，先去添加计划并打卡。</p>
+
+      <h2 class="section-title">最近 30 天</h2>
+      <div class="heatmap-wrapper">
+        <table id="heatmap" class="heatmap" aria-label="30天打卡热力图"></table>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><i class="dot done"></i>完成</span>
+        <span class="legend-item"><i class="dot missed"></i>未做到</span>
+        <span class="legend-item"><i class="dot pending"></i>未打卡</span>
+        <span class="legend-item"><i class="dot na"></i>无计划</span>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="主导航">
+    <button class="tab active" data-view="day">
+      <span class="tab-icon" aria-hidden="true">●</span>
+      <span class="tab-label">今日</span>
+    </button>
+    <button class="tab" data-view="plans">
+      <span class="tab-icon" aria-hidden="true">≡</span>
+      <span class="tab-label">计划</span>
+    </button>
+    <button class="tab" data-view="reports">
+      <span class="tab-icon" aria-hidden="true">▦</span>
+      <span class="tab-label">报告</span>
+    </button>
+  </nav>
+
+  <!-- New / Edit Task Dialog -->
+  <dialog id="task-dialog" class="dialog">
+    <form id="task-form" method="dialog">
+      <header class="dialog-header">
+        <h2 id="dialog-title">新建计划</h2>
+      </header>
+
+      <label class="field">
+        <span>标题</span>
+        <input type="text" id="f-title" required maxlength="80" placeholder="例：12:30 前睡觉" />
+      </label>
+
+      <label class="field">
+        <span>备注（可选）</span>
+        <textarea id="f-note" rows="2" maxlength="200" placeholder="可不填"></textarea>
+      </label>
+
+      <label class="field">
+        <span>时间（可选，仅显示用）</span>
+        <input type="time" id="f-time" />
+      </label>
+
+      <fieldset class="field">
+        <legend>频率</legend>
+        <label class="radio"><input type="radio" name="freq" value="once" /> 仅一次</label>
+        <label class="radio"><input type="radio" name="freq" value="daily" checked /> 每天</label>
+        <label class="radio"><input type="radio" name="freq" value="weekly" /> 每周</label>
+      </fieldset>
+
+      <label class="field" id="field-once" hidden>
+        <span>日期</span>
+        <input type="date" id="f-once-date" />
+      </label>
+
+      <fieldset class="field" id="field-weekly" hidden>
+        <legend>星期几</legend>
+        <div class="weekdays">
+          <label><input type="checkbox" data-weekday="1" /> 一</label>
+          <label><input type="checkbox" data-weekday="2" /> 二</label>
+          <label><input type="checkbox" data-weekday="3" /> 三</label>
+          <label><input type="checkbox" data-weekday="4" /> 四</label>
+          <label><input type="checkbox" data-weekday="5" /> 五</label>
+          <label><input type="checkbox" data-weekday="6" /> 六</label>
+          <label><input type="checkbox" data-weekday="0" /> 日</label>
+        </div>
+      </fieldset>
+
+      <label class="field" id="field-start">
+        <span>起始日期</span>
+        <input type="date" id="f-start-date" />
+      </label>
+
+      <footer class="dialog-footer">
+        <button type="button" class="link-btn" id="dialog-cancel">取消</button>
+        <button type="button" class="danger-btn hidden" id="dialog-archive">归档</button>
+        <button type="submit" class="primary-btn" id="dialog-save">保存</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
