@@ -2,7 +2,7 @@
  * Strategy: cache-first for the static app shell, network fallback.
  * Bump CACHE_VERSION to force-refresh clients after a deploy. */
 
-const CACHE_VERSION = 'v1.0.3';
+const CACHE_VERSION = 'v1.0.4';
 const CACHE_NAME = `life-tracker-${CACHE_VERSION}`;
 
 const APP_SHELL = [
