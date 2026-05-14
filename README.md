@@ -146,3 +146,38 @@ npx serve .
 ## License
 
 MIT
+
+## 目标模块补充
+
+新增的 **目标** 页用于创建自定义目标周期，并基于 **今日** 页已有打卡记录自动计算达成情况。目标页不会修改打卡记录；打卡仍然只在 **今日** 页完成。
+
+新数据会保存在同一个 `lifetracker:v1` localStorage 对象的 `goalPeriods` 字段中。旧备份没有 `goalPeriods` 也能正常导入和使用。
+
+```json
+{
+  "goalPeriods": [
+    {
+      "id": "gp_xxx",
+      "startDate": "2026-05-14",
+      "endDate": "2026-05-20",
+      "createdAt": "2026-05-14T10:00:00.000Z",
+      "updatedAt": "2026-05-14T10:00:00.000Z",
+      "goals": [
+        {
+          "id": "g_xxx",
+          "sourceTaskId": "t_xxx",
+          "title": "12:30 前睡觉",
+          "targetDays": 6
+        }
+      ]
+    }
+  ]
+}
+```
+
+说明：
+
+- `startDate` / `endDate` 是 inclusive 日期范围。
+- `targetDays` 表示该周期内至少完成多少天。
+- 目标完成数不单独存储，而是从 `checkins[date][sourceTaskId] === "done"` 动态计算。
+- 删除目标周期只删除 `goalPeriods` 里的该周期，不删除每日计划，也不删除已有打卡记录。
